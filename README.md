@@ -15,6 +15,16 @@ Within the game, everyone who is participating is direct messaged a word. Everyo
 8.  The bot will let everyone know if they kicked out the imposter.
 9.  If the imposter is kicked out, everyone else wins, if the imposter is left with one other person, the imposter wins.
 
+## If you want to use this bot
+1. Create a discord app using the discord developers portal
+2. Clone this repository
+3. Create a file called ".env" in the same location as the main.py and words.json file
+4. Find the "reset token" button in the "bot" panel in the discord app you created
+5. Create a token and copy it
+6. In the .env file create a variable like so "IMPOSTER_TOKEN=[PASTE YOUR BOTS TOKEN HERE]" (without the quotation marks)
+7. Invite your bot to your server with the bot and application.commands options selected, give it admin permission as well
+8. Run the main.py file and enjoy
+
 ## Notes
 - Sometimes if you react too early your reaction will not be seen by the bot. Always wait until all reactions are set up by the bot before you react. You may unreact and rereact if you think you reacted too early
 - The words are contained in words.json, if you want to add new words just add them anywhere in the middle of the json file in this format: ["word 1", "word 2"].
