@@ -67,6 +67,9 @@ class lobby:
                 pass
             return
 
+        # Randomize the order of players
+        self.players = self.randomize_players()
+
         #Select the imposter and send their word
         self.imposter = random.choice(self.players)
         try:
@@ -86,7 +89,7 @@ class lobby:
         self.stage = 1 #set the stage to players are playing
 
         # send the updated embed and add proper reactions
-        embed = discord.Embed(title="Game started", description=f"Take turns saying one word that is related to the word I dm'd you.\n{self.owner}, react with ➡ to continue to voting.",
+        embed = discord.Embed(title="Game started", description=f"Take turns saying one word that is related to the word I dm'd you.\n{self.owner}, react with ➡ to continue to voting.\n" + self.order_to_string(),
                               color=discord.Color.red())
         await self.og_message.edit(embed=embed)
         await self.og_message.clear_reactions()
@@ -103,7 +106,7 @@ class lobby:
         for i in self.players:
             if i not in self.kick_list:
                 desc += str(count) + ". " + i.name + "\n"
-                self.voting_list[i] = [count, 0, i] #add all possible votes to the voting list [corresponding num, votes]
+                self.voting_list[i] = [count, 0, i, False] #add all possible votes to the voting list [corresponding num, votes]
                 self.voting_num_to_user[count] = i
                 count += 1
         desc += "React with ➡ to end voting"
@@ -138,7 +141,7 @@ class lobby:
             # If kicker person is not imposter and there are still 3+ players left
             if highest[0] != self.imposter and len(self.players) - len(self.kick_list) != 2:
                 self.stage = 1
-                embed = discord.Embed(title=f"💀 {highest[0].name} was kicked. They were not the imposter. 💀", description=f"Take turns saying one word that is related to the word I dm'd you.\n{self.owner}, react with ➡ to continue to voting.",
+                embed = discord.Embed(title=f"💀 {highest[0].name} was kicked. They were not the imposter. 💀", description=f"Take turns saying one word that is related to the word I dm'd you.\n{self.owner}, react with ➡ to continue to voting.\n" + self.order_to_string(),
                                       color=discord.Color.red())
                 await self.og_message.edit(embed=embed)
                 await self.og_message.clear_reactions()
@@ -150,7 +153,7 @@ class lobby:
             # If kicked person is not imposter but there is 2 people left (the imposter wins)
             elif highest[0] != self.imposter and len(self.players) - len(self.kick_list) == 2:
                 self.stage = 3
-                embed = discord.Embed(title=f"😈 {highest[0].name} was kicked. They were not the imposter! 😈", description=f"Since 2 people remain, the imposter wins!!! Congratulations {self.imposter}\nUse /start-game to start a new game.",
+                embed = discord.Embed(title=f"😈 {highest[0].name} was kicked. They were not the imposter! 😈", description=f"Since 2 people remain, the imposter wins!!! Congratulations {self.imposter}\nThe words were {self.words[0]} and {self.words[1]}.\nUse /start-game to start a new game.",
                                       color=discord.Color.red())
                 await self.og_message.edit(embed=embed)
                 await self.og_message.clear_reactions()
@@ -159,7 +162,7 @@ class lobby:
             # If the kicked person was the imposter
             elif highest[0] == self.imposter:
                 self.stage = 3
-                embed = discord.Embed(title=f"🎉 {highest[0].name} was kicked. They were the imposter! 🎉", description=f"{self.imposter} loses!\nUse /start-game to start a new game.",
+                embed = discord.Embed(title=f"🎉 {highest[0].name} was kicked. They were the imposter! 🎉", description=f"{self.imposter} loses!\nThe words were {self.words[0]} and {self.words[1]}.\nUse /start-game to start a new game.",
                                       color=discord.Color.red())
                 await self.og_message.edit(embed=embed)
                 await self.og_message.clear_reactions()
@@ -168,7 +171,7 @@ class lobby:
         # if there was a tie, just move on the the next round and dont do anything
         else:
             self.stage = 1
-            embed = discord.Embed(title=f"⚖ There was a tie! No one was kicked. ⚖", description=f"Take turns saying one word that is related to the word I dm'd you.\n{self.owner}, react with ➡ to continue to voting.",
+            embed = discord.Embed(title=f"⚖ There was a tie! No one was kicked. ⚖", description=f"Take turns saying one word that is related to the word I dm'd you.\n{self.owner}, react with ➡ to continue to voting.\n" + self.order_to_string(),
                                   color=discord.Color.red())
             await self.og_message.edit(embed=embed)
             await self.og_message.clear_reactions()
@@ -176,6 +179,25 @@ class lobby:
             await self.og_message.add_reaction("❌")
             self.voting_list.clear()
             self.voting_num_to_user.clear()
+
+    def randomize_players(self):
+        new_list = []
+        for i in range(len(self.players)):
+            rand_index = random.randint(0, len(self.players)-1)
+            new_list.append(self.players[rand_index])
+            self.players.pop(rand_index)
+
+        return new_list
+
+    def order_to_string(self):
+        order_string = ""
+
+        for i in range(len(self.players)):
+            if self.players[i] in self.kick_list:
+                continue
+            order_string += str(i+1) + ". " + self.players[i].name + "\n"
+
+        return order_string
 
 
 load_dotenv()
@@ -241,6 +263,10 @@ async def on_reaction_add(reaction, user):
 
         if user not in lobbies[reaction.message.id].voting_list:
             return
+
+        if lobbies[reaction.message.id].voting_list[user][3]:
+            return
+
         lobbies[reaction.message.id].voting_list[lobbies[reaction.message.id].voting_num_to_user[1]][1] += 1
 
     if reaction.emoji == "2️⃣":
@@ -249,6 +275,10 @@ async def on_reaction_add(reaction, user):
 
         if user not in lobbies[reaction.message.id].voting_list:
             return
+
+        if lobbies[reaction.message.id].voting_list[user][3]:
+            return
+
         lobbies[reaction.message.id].voting_list[lobbies[reaction.message.id].voting_num_to_user[2]][1] += 1
 
     if reaction.emoji == "3️⃣":
@@ -257,6 +287,10 @@ async def on_reaction_add(reaction, user):
 
         if user not in lobbies[reaction.message.id].voting_list:
             return
+
+        if lobbies[reaction.message.id].voting_list[user][3]:
+            return
+
         lobbies[reaction.message.id].voting_list[lobbies[reaction.message.id].voting_num_to_user[3]][1] += 1
 
     if reaction.emoji == "4️⃣":
@@ -265,6 +299,10 @@ async def on_reaction_add(reaction, user):
 
         if user not in lobbies[reaction.message.id].voting_list:
             return
+
+        if lobbies[reaction.message.id].voting_list[user][3]:
+            return
+
         lobbies[reaction.message.id].voting_list[lobbies[reaction.message.id].voting_num_to_user[4]][1] += 1
 
     if reaction.emoji == "5️⃣":
@@ -273,6 +311,10 @@ async def on_reaction_add(reaction, user):
 
         if user not in lobbies[reaction.message.id].voting_list:
             return
+
+        if lobbies[reaction.message.id].voting_list[user][3]:
+            return
+
         lobbies[reaction.message.id].voting_list[lobbies[reaction.message.id].voting_num_to_user[5]][1] += 1
 
     if reaction.emoji == "6️⃣":
@@ -281,6 +323,10 @@ async def on_reaction_add(reaction, user):
 
         if user not in lobbies[reaction.message.id].voting_list:
             return
+
+        if lobbies[reaction.message.id].voting_list[user][3]:
+            return
+
         lobbies[reaction.message.id].voting_list[lobbies[reaction.message.id].voting_num_to_user[6]][1] += 1
 
     if reaction.emoji == "7️⃣":
@@ -289,6 +335,10 @@ async def on_reaction_add(reaction, user):
 
         if user not in lobbies[reaction.message.id].voting_list:
             return
+
+        if lobbies[reaction.message.id].voting_list[user][3]:
+            return
+
         lobbies[reaction.message.id].voting_list[lobbies[reaction.message.id].voting_num_to_user[7]][1] += 1
 
     if reaction.emoji == "8️⃣":
@@ -297,6 +347,10 @@ async def on_reaction_add(reaction, user):
 
         if user not in lobbies[reaction.message.id].voting_list:
             return
+
+        if lobbies[reaction.message.id].voting_list[user][3]:
+            return
+
         lobbies[reaction.message.id].voting_list[lobbies[reaction.message.id].voting_num_to_user[8]][1] += 1
 
 
